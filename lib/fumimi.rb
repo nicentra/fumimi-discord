@@ -84,39 +84,40 @@ module Fumimi::Events
 
   respond(:artist_id, /artist #[0-9]+/i) do |event, text|
     id = text[/[0-9]+/]
-    event << "https://danbooru.donmai.us/artists/#{id}"
+    event << "http://nbooru.dai/artists/#{id}"
   end
 
   respond(:note_id, /note #[0-9]+/i) do |event, text|
     id = text[/[0-9]+/]
 
     note = booru.notes.show(id)
-    event << "https://danbooru.donmai.us/posts/#{note.post_id}#note-#{note.id}"
+    event << "http://nbooru.dai/posts/#{note.post_id}#note-#{note.id}"
   end
 
   respond(:pixiv_id, /pixiv #[0-9]+/i) do |event, text|
     id = text[/[0-9]+/]
-    event << "https://www.pixiv.net/member_illust.php?mode=medium&illust_id=#{id}"
+    # event << "https://www.pixiv.net/member_illust.php?mode=medium&illust_id=#{id}"
+    event << "https://www.pixiv.net/artworks/#{id}"
   end
 
   respond(:pool_id, /pool #[0-9]+/i) do |event, text|
     id = text[/[0-9]+/]
-    event << "https://danbooru.donmai.us/pools/#{id}"
+    event << "http://nbooru.dai/pools/#{id}"
   end
 
   respond(:user_id, /user #[0-9]+/i) do |event, text|
     id = text[/[0-9]+/]
-    event << "https://danbooru.donmai.us/users/#{id}"
+    event << "http://nbooru.dai/users/#{id}"
   end
 
   respond(:issue_id, /issue #[0-9]+/i) do |event, text|
     issue_id = text[/[0-9]+/]
-    event.send_message "https://github.com/danbooru/danbooru/issues/#{issue_id}"
+    event.send_message "https://github.com/nicentra/danbooru/issues/#{issue_id}"
   end
 
   respond(:pull_id, /pull #[0-9]+/i) do |event, text|
     pull_id = text[/[0-9]+/]
-    event.send_message "https://github.com/danbooru/danbooru/pull/#{pull_id}"
+    event.send_message "https://github.com/nicentra/danbooru/pull/#{pull_id}"
   end
 
   def do_convert_post_links(event)
@@ -139,6 +140,28 @@ module Fumimi::Events
 
     nil
   end
+
+  def do_convert_nbooru_post_links(event)
+    post_ids = []
+
+    message = event.message.content.gsub(%r{\b(?!https?://nbooru\.dai/posts/\d+/\w+)https?://(?!testbooru)\w+\.nbooru\.dai/posts/(\d+)\b[^[:space:]]*}i) do |link|
+      post_ids << $1.to_i
+      "<#{link}>"
+    end
+
+    if post_ids.present?
+      event.message.delete
+      event.send_message("#{event.author.display_name} posted: #{message}", false, nil, nil, false) # tts, embed, attachments, allowed_mentions
+
+      post_ids.each do |post_id|
+        post = booru.posts.show(post_id)
+        post.send_embed(event.channel)
+      end
+    end
+
+    nil
+  end
+
 end
 
 module Fumimi::Commands
@@ -308,7 +331,7 @@ class Fumimi
   include Fumimi::Events
 
   attr_reader :server_id, :client_id, :token, :log
-  attr_reader :bot, :server, :booru, :storage
+  attr_reader :bot, :server, :booru, :nbooru, :storage
   attr_reader :initiate_shutdown
 
   def initialize(server_id:, client_id:, token:, log: Logger.new(STDERR))
@@ -325,7 +348,8 @@ class Fumimi
       wiki_pages: Fumimi::Model::WikiPage,
     }
 
-    @booru = Danbooru.new(factory: factory, log: log)
+    @booru = Danbooru.new(url: ENV["DANBOORU_URL"], user: ENV["DANBOORU_USER"], api_key: ENV["DANBOORU_API_KEY"], factory: factory, log: log)
+    @nbooru = Danbooru.new(url: ENV["NBOORU_URL"], user: ENV["NBOORU_USER"], api_key: ENV["NBOORU_API_KEY"], factory: factory, log: log)
     #@storage = Google::Cloud::Storage.new
   end
 
@@ -351,6 +375,7 @@ class Fumimi
     end
 
     bot.message(contains: %r!https?://\w+\.donmai\.us/posts/\d+!i, &method(:do_convert_post_links))
+    bot.message(contains: %r!https?://nbooru\.dai/posts/\d+!i, &method(:do_convert_nbooru_post_links))
     bot.command(:hi, description: "Say hi to Fumimi: `/hi`", &method(:do_hi))
     bot.command(:calc, description: "Calculate a math expression", &method(:do_calc))
     bot.command(:ruby, description: "Evaluate a ruby expression", &method(:do_ruby))

@@ -30,6 +30,17 @@ end
 def main(options)
   log = Logger.new(STDERR)
   log.level = Logger::DEBUG
+  # server_ids = ENV["DISCORD_SERVER_ID"].split(',')
+  # fumimis = []
+
+  #  server_ids.each do |server_id|
+  #   fumimis.push(Fumimi.new({
+  #     server_id: server_id.to_i,
+  #     client_id: ENV["DISCORD_CLIENT_ID"],
+  #     token: ENV["DISCORD_TOKEN"],
+  #     log: log,
+  #   }))
+  # end
 
   fumimi = Fumimi.new({
     server_id: ENV["DISCORD_SERVER_ID"].to_i,
@@ -42,13 +53,16 @@ def main(options)
     trap signal do
       STDERR.puts "SIG#{signal} received, initiating shutdown..."
       fumimi.initiate_shutdown!
+
     end
   end
 
   if options[:console]
     fumimi.pry
+    # fumimis[0].pry
   else
     fumimi.run_commands
+    # fumimis[0].run_commands
   end
 end
 
