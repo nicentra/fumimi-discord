@@ -75,7 +75,7 @@ module Fumimi::Events
     search = text[/[^{}]+/]
 
     event.channel.start_typing
-    posts = booru.posts.index(limit: 3, tags: search)
+    posts = booru.posts.index(limit: 3, tags: "#{event.channel.nsfw? ? '' : 'rating:g,s '}#{search}")
 
     posts.each do |post|
       post.send_embed(event.channel)
@@ -144,7 +144,7 @@ module Fumimi::Events
   def do_convert_nbooru_post_links(event)
     post_ids = []
 
-    message = event.message.content.gsub(%r{\b(?!https?://nbooru\.dai/posts/\d+/\w+)https?://(?!testbooru)\w+\.nbooru\.dai/posts/(\d+)\b[^[:space:]]*}i) do |link|
+    message = event.message.content.gsub(%r{\b(?!https?://nbooru\.dai/posts/\d+/\w+)https?://nbooru\.dai/posts/(\d+)\b[^[:space:]]*}i) do |link|
       post_ids << $1.to_i
       "<#{link}>"
     end
@@ -154,7 +154,7 @@ module Fumimi::Events
       event.send_message("#{event.author.display_name} posted: #{message}", false, nil, nil, false) # tts, embed, attachments, allowed_mentions
 
       post_ids.each do |post_id|
-        post = booru.posts.show(post_id)
+        post = nbooru.posts.show(post_id)
         post.send_embed(event.channel)
       end
     end
@@ -200,7 +200,7 @@ module Fumimi::Commands
   end
 
   def do_say(event, *args)
-    return unless event.user.id == 310167383912349697 || event.user.id == 326364297561243649
+    return unless event.user.id == 140171306988601346 || event.user.id == 185460742151995402
 
     channel_name = args.shift
     message = args.join(" ")
@@ -216,7 +216,7 @@ module Fumimi::Commands
   end
 
   command :ruby do |event, *args|
-    return unless event.user.id == 310167383912349697
+    return unless event.user.id == 140171306988601346
 
     code = args.join(" ")
     result = instance_eval(code)
@@ -254,7 +254,7 @@ module Fumimi::Commands
     raise ArgumentError unless name.present?
 
     if name[0] == "+"
-      raise ArgumentError unless event.user.id == 310167383912349697
+      raise ArgumentError unless event.user.id == 140171306988601346
 
       username = name[1..-1]
       id, user = bot.users.find do |id, user|
@@ -375,7 +375,7 @@ class Fumimi
     end
 
     bot.message(contains: %r!https?://\w+\.donmai\.us/posts/\d+!i, &method(:do_convert_post_links))
-    bot.message(contains: %r!https?://nbooru\.dai/posts/\d+!i, &method(:do_convert_nbooru_post_links))
+    # bot.message(contains: %r!https?://nbooru\.dai/posts/\d+!i, &method(:do_convert_nbooru_post_links))
     bot.command(:hi, description: "Say hi to Fumimi: `/hi`", &method(:do_hi))
     bot.command(:calc, description: "Calculate a math expression", &method(:do_calc))
     bot.command(:ruby, description: "Evaluate a ruby expression", &method(:do_ruby))
@@ -392,7 +392,7 @@ class Fumimi
       name: "Robot Maid Fumimi",
       client_id: client_id,
       token: token,
-      prefix: '/',
+      prefix: ';',
     })
 
     register_commands

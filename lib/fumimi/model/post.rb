@@ -48,7 +48,7 @@ class Fumimi::Model::Post < Danbooru::Model::Post
   end
 
   def is_unsafe?(nsfw_channel)
-    rating != 'g' && !nsfw_channel
+    rating != 'g' && rating != 's' && !nsfw_channel
   end
 
   def is_censored?
